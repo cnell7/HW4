@@ -13,6 +13,7 @@
 #       Signature: _Christian Nell__
 import sys
 import shutil
+from socket import *
 rcpts = []
 mailboxs = []
 datas = []
@@ -446,8 +447,46 @@ def ok250(count):
     return count
 
 
+#   HELO message parse
+
+def heloParse(string):
+    if(not(string[:4] == 'HELO')):
+        return False
+    string = string[4:]
+    string = whitespace(string)
+    string = domain(string)
+    if(not(string)):
+        return False
+    string = nullspace(string)
+    string = CRLF(string)
+    if(not(string)):
+        return False
+    return True
+
+
 def main():
     count = 0
+    serverPort = sys.argv[1]
+    serverSocket = socket(AF_INET, SOCK_STREAM)
+    serverSocket.bind(('', serverPort))  # Create TCP welcoming socket
+    serverSocket.listen(1)  # Server begins listening for incoming TCP requests
+    while True:
+        connectionSocket, addr = serverSocket.accept()
+        greeting = "220 comp431fa20.cs.unc.edu"
+        connectionSocket.send(greeting.encode())
+        heloMessage = connectionSocket.recv(1024).decode()
+        heloMessage = heloParse(heloMessage)
+        if(not(heloMessage)):
+            error500("need to replace this")
+            break
+        # Needs to be changed to correct domain
+        hello250 = "250 Hello " + heloMessage[5:] + " pleased to meet you"
+        connectionSocket.send(hello250.encode())
+        #sentence = connectionSocket.recv(1024).decode()
+        #capitalizedSentence = sentence.upper()
+        # connectionSocket.send(capitalizedSentence.encode())
+        connectionSocket.close()  # Close connection to this client (not welcoming socket)
+
     #  Get line of input from terminal and check in mail_from_cmd
     for line in sys.stdin:
         count = call_command(line, count)

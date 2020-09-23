@@ -13,6 +13,7 @@
 #       Signature: _Christian Nell__
 import sys
 import shutil
+from socket import *
 mailFrom = ""
 rcptTo = []
 data = []
@@ -135,6 +136,16 @@ def call_command(string, state):
 def main():
     #   Iterates through the lines in a forward file to process client-side
     state = 0
+    serverName = 'comp431fa20.cs.unc.edu'
+    serverPort = 17326
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    # Create TCP socket to server on port 17326
+    clientSocket.connect((serverName, serverPort))
+    #sentence = raw_input('Input lowercase sentence:')
+    # clientSocket.send(sentence.encode())
+    #modifiedSentence = clientSocket.recv(1024)
+    #print('From Server:', modifiedSentence.decode())
+    clientSocket.close()
     with open(sys.argv[1], 'r') as my_file:
         for line in my_file:
             if(state == 0):
