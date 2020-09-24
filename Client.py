@@ -19,10 +19,49 @@ rcptTo = []
 data = []
 
 
+def reverse_path(string):
+    #  <path>
+    return path(string)
+
+
+def forward_path(string):
+    copy = string
+    findForward = path(string)
+    if(findForward == False):
+        return False
+    return copy[:len(copy)-len(findForward)]
+
+
+def path(string):
+    #  <mailbox>
+    string = mailbox(string)
+    if(string == False):
+        return False
+    return string
+
+
+def mailbox(string):
+    #  <local-part>
+    copy = string
+    string = local_part(string)
+    if(string == False or (copy[0] == string[0])):
+        print("ERROR -- local-part")
+        return False
+    #  "@"
+    if(string[0] != '@'):
+        print("ERROR -- mailbox")
+        return False
+    #  <domain>
+    string = domain(string[1:])
+    if(string == False):
+        return False
+    return string
+
+
 def whitespace(string):
     #   <SP> | <SP> <whitespace>
     if(SP(string) == False):
-        return string
+        return string[0:]
     string = SP(string)
     return whitespace(string)
 
@@ -34,6 +73,100 @@ def SP(string):
     elif(string[0] == '\\'):
         if(string[1] == 't'):
             return string[2:]
+    return False
+
+
+def nullspace(string):
+    #   <null> | <whitespace>
+    if(null(string[0])):
+        return string
+    return whitespace(string)
+
+
+def null(c):
+    #  no character
+    if((c != ' ') or (c != '\t')):
+        return False
+    return True
+
+
+def local_part(string):
+    #   <string>
+    string = string_(string)
+    return string
+
+
+def string_(string):
+    #   <char> | <char> <string>
+    if(char(string) == False):
+        return string
+    return string_(string[1:])
+
+
+def char(string):
+    #   any one of the printable ASCII characters, but not any
+    #       of <special> or <SP>
+    if(special(string[0]) or SP(string) or not(ord(string[0]) < 128) or CRLF(string[0])):
+        return False
+    return True
+
+
+def domain(string):
+    #   <element> | <element> "." <domain>
+    string = element(string)
+    if(string == False):
+        print("ERROR -- domain")
+        return False
+    if(string[0] == '.'):
+        string = domain(string[1:])
+    return string
+
+
+def element(string):
+    #  <letter> | <name>
+    if(not(letter(string[0]))):
+        return False
+    if(name(string) != False):
+        string = name(string)
+    elif():
+        string = string[1:]
+    return string
+
+
+def name(string):
+    #   <letter> <let-dig-str>
+    if(not(letter(string[0]))):
+        return False
+    return let_dig_str(string)
+
+
+def letter(c):
+    #   any one of the 52 alphabetic characters A through Z
+    #       in upper case and a through z in lower case
+    if c.isalpha():
+        return True
+    return False
+
+
+def let_dig_str(string):
+    #   <let-dig> | <let-dig> <let-dig-str>
+    if(not(let_dig(string[0]))):
+        return string
+    return let_dig_str(string[1:])
+
+
+def let_dig(c):
+    #  <letter> | <digit>
+    if(letter(c) or digit(c)):
+        return True
+    return False
+
+
+def digit(c):
+    #    any one of the ten digits 0 through 9
+    digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    if c in digits:
+        return True
     return False
 
 
@@ -50,104 +183,57 @@ def CRLF(string):
     return False
 
 
-def fromParse(string):
-    #   Checkes for "From: " and a mailbox in a forward file
-    if(string[0:5] != "From:"):
-        return False
-    string = string[6:]
-    mailFrom = string
-    return string
-
-
-def toParse(string):
-    #   Checkes for "To: " and a mailbox in a forward file
-    if(string[0:3] != "To:"):
-        return False
-    string = string[4:]
-    rcptTo.append(string)
-    return string
-
-
-def dataParse(string):
-    #   Checks for Data in the forward file
-    sys.stdout.write(string)
-    data.append(string)
-    return True
-
-
-def responseCodeChecker(state):
-    #   Checks the server's response
-    #    <resp-number>
-    temp = sys.stdin.readline()
-    copy = temp[3:]
-    sys.stderr.write(temp)
-    code = temp[0:3]
-    if(not(code == "250" or code == "354" or code == "500" or code == "501")):
-        return False
-    if(state == 0 or state == 1):
-        if(code != "250"):
-            return False
-    elif(state == 2):
-        if(code != "354"):
-            return False
-    #   <whitespace>
-    if(copy[0] == whitespace(copy)[0]):
-        return False
-    copy = whitespace(copy)
-    if(not(copy[1:])):
-        return False
-    #   <arbitrary-text> <CRLF>
-    return True
-
-
-def call_command(string, state):
-    #   Checks to make sure file has correct From:, To: and Data parameters then logs to standard out
-    isTrue = False
-    if(state == 0):  # State 0 = From:
-        string = fromParse(string)
-        sys.stdout.write("MAIL FROM: " + string)
-        if(not(responseCodeChecker(0))):
-            return -1
-        return 1
-    elif(state == 1):  # State 1 = To:
-        isTrue = toParse(string)
-        if(isTrue == False):  # Move to state 2
-            sys.stdout.write("DATA\n")
-            if(not(responseCodeChecker(2))):
-                return -1
-            return call_command(string, 2)
-        string = toParse(string)
-        sys.stdout.write("RCPT TO: " + string)
-        if(not(responseCodeChecker(1))):
-            return -1
-        return 1
-    elif(state == 2):  # State 2 = Data
-        isTrue = fromParse(string)
-        if(isTrue):  # Move back to state 0
-            sys.stdout.write(".\n")
-            if(not(responseCodeChecker(0))):
-                return -1
-            return call_command(string, 0)
-        dataParse(string)
-        return 2
+def special(c):
+    #   special list ... shouldn't be in input
+    special_list = ['<', '>', '(', ')', '[', ']',
+                    '\\', '.', ',', ';', ':', '@', '"']
+    if c in special_list:
+        return True
     return False
 
 
+def getRCPTS():
+    searching = True
+    rcpt = sys.stdin.readline()
+    rcptTo.append(forward_path(rcpt))
+    return rcptTo
+
+
+def createMessage():
+    fromMessage = False
+    toMessage = False
+    while(fromMessage == False):
+        print("From:")
+        fromMessage = sys.stdin.readline()
+        fromMessage = reverse_path(fromMessage)
+    while(toMessage == False):
+        print("To:")
+        toMessage = getRCPTS()
+        print(toMessage)
+
+    print("Subject:")
+    subjectMessage = sys.stdin.readline()
+    print("Message:")
+
+    mailFrom = fromMessag
+    rcptTo = toMessage
+    return True
+
+
 def main():
+    createMessage()
     '''
-    #   Iterates through the lines in a forward file to process client-side
     state = 0
-    serverName = 'comp431fa20.cs.unc.edu'
-    serverPort = 17326
+    serverName = sys.argv[1]
+    serverPort = sys.argv[2]
+
+    createMessage()
+
     clientSocket = socket(AF_INET, SOCK_STREAM)
-    # Create TCP socket to server on port 17326
     clientSocket.connect((serverName, serverPort))
-    #sentence = raw_input('Input lowercase sentence:')
-    # clientSocket.send(sentence.encode())
-    #modifiedSentence = clientSocket.recv(1024)
-    #print('From Server:', modifiedSentence.decode())
     clientSocket.close()
     '''
+
     '''
     with open(sys.argv[1], 'r') as my_file:
         for line in my_file:
