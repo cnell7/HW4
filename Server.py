@@ -419,32 +419,64 @@ def writeData():
 
 
 def error500(string):
-    echo(string)
-    print("500 Syntax error: command unrecognized")
+    message = "500 Syntax error: command unrecognized"
+    connectionSocket.send(message.encode)
     return False
 
 #   501 Syntax error
 
 
 def error501(string):
-    print("501 Syntax error in parameters or arguments")
+    message = "501 Syntax error in parameters or arguments"
+    connectionSocket.send(message.encode)
     return False
 
 #   503 Bad sequence
 
 
 def error503(string):
-    echo(string)
-    print("503 Bad sequence of commands")
+    message = "503 Bad sequence of commands"
+    connectionSocket.send(message.encode)
     return False
 
 #   250 OK
 
 
 def ok250(count):
-    print("250 OK")
+    message = "250 OK"
+    connectionSocket.send(message.encode)
     count += 1
     return count
+
+
+def acceptingMessages(connectionSocket):
+    count = 0
+    takingMessages = True
+
+    greeting = "220 comp431fa20.cs.unc.edu"
+    connectionSocket.send(greeting.encode())
+    heloMessage = connectionSocket.recv(1024).decode()
+    heloMessage = heloParse(heloMessage)
+    if(not(heloMessage)):
+        return False
+    heloResponse = "250 Hello "+heloMessage+" pleased to meet you"
+    connectionSocket.send(heloResponse.encode())
+
+    while takingMessages:
+        line = connectionSocket.recv(1024).decode()
+        count = call_command(line, count)
+        if(not(count)):  # False = start over from MAIL FROM command
+            datas.clear()
+            mailboxs.clear()
+            rcpts.clear()
+            count = 0
+
+    if(count != 0):
+        return error501("Incomplete data input")
+
+    closeMessage = "221 comp431fa20.cs.unc.edu closing connection"
+    connectionSocket.send(closeMessage.encode())
+    return True
 
 #   HELO message parse
 
@@ -471,36 +503,28 @@ def heloParse(string):
     return findDomain
 
 
+def quitParse(string):
+    #   <data-cmd> ::= “DATA” <nullspace> <CRLF>
+    if(not(string[0:4] == 'QUIT')):
+        return error500(string)
+    string = string[4:]
+    string = nullspace(string)
+    string = CRLF(string)
+    if(not(string)):
+        return error501(string)
+    return True
+
+
 def main():
-    count = 0
+    #   Make welcome socket and set port number from command line
     serverPort = int(sys.argv[1])
     serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket.bind(('', serverPort))  # Create TCP welcoming socket
+    serverSocket.bind(('', serverPort))
     serverSocket.listen(1)  # Server begins listening for incoming TCP requests
     while True:
         connectionSocket, addr = serverSocket.accept()
-        greeting = "220 comp431fa20.cs.unc.edu"
-        connectionSocket.send(greeting.encode())
-        heloMessage = connectionSocket.recv(1024).decode()
-        heloMessage = heloParse(heloMessage)
-        if(not(heloMessage)):
-            break
-        heloResponse = "250 Hello "+heloMessage+" pleased to meet you"
-        connectionSocket.send(heloResponse.encode())
-        while True:
-            line = connectionSocket.recv(1024).decode()
-            count = call_command(line, count)
-            if(not(count)):  # False = start over from MAIL FROM command
-                datas.clear()
-                mailboxs.clear()
-                rcpts.clear()
-                count = 0
-            if(count != 0):
-                error501("Incomplete data input")
-                break
-        closeMessage = "221 comp431fa20.cs.unc.edu closing connection"
-        connectionSocket.send(closeMessage.encode())
-        connectionSocket.close()  # Close connection to this client (not welcoming socket)
+        acceptingMessages(connectionSocket)
+        connectionSocket.close()  # Close connection to this client
 
 
 main()
