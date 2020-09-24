@@ -14,17 +14,22 @@
 import sys
 import shutil
 from socket import *
-mailFrom = ""
-rcptTo = []
-data = []
 
 
 def reverse_path(string):
     #  <path>
-    return path(string)
+    copy = string
+    findPath = path(string)
+    if(findPath == False):
+        return False
+    if(findPath[0] == '\n'):
+        return copy[:len(copy)-len(findPath)]
+    print("ERROR whitespace or too many paths after the first mail from path")
+    return False
 
 
 def forward_path(string):
+    #  <path>
     copy = string
     findForward = path(string)
     if(findForward == False):
@@ -194,6 +199,7 @@ def special(c):
 
 def getRCPTS():
     searching = True
+    rcptTo = []
     rcpt = sys.stdin.readline()
     while rcpt:
         forward = forward_path(rcpt)
@@ -204,35 +210,48 @@ def getRCPTS():
         if(rcpt[0] == '\n'):
             return rcptTo
         if(not(rcpt[0] == ',')):
+            print("ERROR missing ',' or ',' is in wrong place")
             return False
         rcpt = rcpt[1:]
         rcpt = whitespace(rcpt)
     return rcptTo
 
 
+def getData():
+    readingData = True
+    datas = []
+    while readingData:
+        msg = sys.stdin.readline()
+        if(msg == ".\n"):
+            return datas
+        datas.append(msg)
+    return False
+
+
 def createMessage():
-    fromMessage = False
-    toMessage = False
-    while(fromMessage == False):
+    mailFrom = False
+    rcptTo = False
+    while(mailFrom == False):
         print("From:")
-        fromMessage = sys.stdin.readline()
-        fromMessage = reverse_path(fromMessage)
-    while(toMessage == False):
+        mailFrom = sys.stdin.readline()
+        mailFrom = reverse_path(mailFrom)
+    while(rcptTo == False):
         print("To:")
-        toMessage = getRCPTS()
-        print(toMessage)
+        rcptTo = getRCPTS()
 
     print("Subject:")
     subjectMessage = sys.stdin.readline()
     print("Message:")
-
-    mailFrom = fromMessag
-    rcptTo = toMessage
-    return True
+    data = getData()
+    return [mailFrom, rcptTo, subjectMessage, data]
 
 
 def main():
-    createMessage()
+    message = createMessage()
+    print(message[0])
+    print(message[1])
+    print(message[2])
+    print(message[3])
     '''
     state = 0
     serverName = sys.argv[1]
