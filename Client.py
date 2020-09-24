@@ -195,7 +195,18 @@ def special(c):
 def getRCPTS():
     searching = True
     rcpt = sys.stdin.readline()
-    rcptTo.append(forward_path(rcpt))
+    while rcpt:
+        forward = forward_path(rcpt)
+        if(not(forward)):
+            return False
+        rcptTo.append(forward)
+        rcpt = rcpt[len(forward):]
+        if(rcpt[0] == '\n'):
+            return rcptTo
+        if(not(rcpt[0] == ',')):
+            return False
+        rcpt = rcpt[1:]
+        rcpt = whitespace(rcpt)
     return rcptTo
 
 
