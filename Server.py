@@ -446,27 +446,34 @@ def ok250(count):
     count += 1
     return count
 
-
 #   HELO message parse
 
+
 def heloParse(string):
+    #   HELO <whitespace> <domain> <nullspace> <CRLF>
+    iString = string
     if(not(string[:4] == 'HELO')):
-        return False
+        return error500(iString)
     string = string[4:]
+    copy = string
     string = whitespace(string)
+    if(copy[0] == string[0]):
+        return error501(iString)
+    findDomain = string
     string = domain(string)
     if(not(string)):
-        return False
+        return error501(iString)
+    findDomain = findDomain[:len(findDomain)-len(string)]
     string = nullspace(string)
     string = CRLF(string)
     if(not(string)):
-        return False
-    return True
+        return error501(iString)
+    return findDomain
 
 
 def main():
     count = 0
-    serverPort = sys.argv[1]
+    serverPort = int(sys.argv[1])
     serverSocket = socket(AF_INET, SOCK_STREAM)
     serverSocket.bind(('', serverPort))  # Create TCP welcoming socket
     serverSocket.listen(1)  # Server begins listening for incoming TCP requests
@@ -477,26 +484,23 @@ def main():
         heloMessage = connectionSocket.recv(1024).decode()
         heloMessage = heloParse(heloMessage)
         if(not(heloMessage)):
-            error500("need to replace this")
             break
-        # Needs to be changed to correct domain
-        hello250 = "250 Hello " + heloMessage[5:] + " pleased to meet you"
-        connectionSocket.send(hello250.encode())
-        #sentence = connectionSocket.recv(1024).decode()
-        #capitalizedSentence = sentence.upper()
-        # connectionSocket.send(capitalizedSentence.encode())
+        heloResponse = "250 Hello "+heloMessage+" pleased to meet you"
+        connectionSocket.send(heloResponse.encode())
+        while True:
+            line = connectionSocket.recv(1024).decode()
+            count = call_command(line, count)
+            if(not(count)):  # False = start over from MAIL FROM command
+                datas.clear()
+                mailboxs.clear()
+                rcpts.clear()
+                count = 0
+            if(count != 0):
+                error501("Incomplete data input")
+                break
+        closeMessage = "221 comp431fa20.cs.unc.edu closing connection"
+        connectionSocket.send(closeMessage.encode())
         connectionSocket.close()  # Close connection to this client (not welcoming socket)
-
-    #  Get line of input from terminal and check in mail_from_cmd
-    for line in sys.stdin:
-        count = call_command(line, count)
-        if(not(count)):  # False = start over from MAIL FROM command
-            datas.clear()
-            mailboxs.clear()
-            rcpts.clear()
-            count = 0
-    if(count != 0):
-        error501("Incomplete data input")
 
 
 main()
