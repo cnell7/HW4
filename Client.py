@@ -275,9 +275,10 @@ def acceptingMessages(clientSocket):
 def main():
     state = 0
     serverName = sys.argv[1]
-    serverPort = sys.argv[2]
+    serverPort = int(sys.argv[2])
+    print(serverName)
+    print(serverPort)
     userMessageInput = createMessage()
-
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect((serverName, serverPort))
     acceptingMessages(clientSocket)
