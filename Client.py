@@ -246,23 +246,42 @@ def createMessage():
     return [mailFrom, rcptTo, subjectMessage, data]
 
 
+def greetingParse(string):
+    if(string[:3] == '220'):
+        return True
+    return False
+
+
+def ok250Parse(string):
+    if(string[:3] == '250'):
+        return True
+    return False
+
+
+def acceptingMessages(clientSocket):
+    sendingMessages = True
+    greeting = clientSocket.recv(1024).decode
+    if(not(greetingParse(greeting))):
+        return False
+    heloMessage = "HELO comp431fa20b.cs.unc.edu"
+    clientSocket.send(heloMessage.encode())
+    ok250 = clientSocket.recv(1024).decode()
+    if(not(ok250Parse(ok250))):
+        return False
+    while sendingMessages:
+        return True
+
+
 def main():
-    message = createMessage()
-    print(message[0])
-    print(message[1])
-    print(message[2])
-    print(message[3])
-    '''
     state = 0
     serverName = sys.argv[1]
     serverPort = sys.argv[2]
-
-    createMessage()
+    userMessageInput = createMessage()
 
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect((serverName, serverPort))
+    acceptingMessages(clientSocket)
     clientSocket.close()
-    '''
 
     '''
     with open(sys.argv[1], 'r') as my_file:
