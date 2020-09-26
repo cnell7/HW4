@@ -229,6 +229,8 @@ def ok250(count, clientSocket):
     count += 1
     return count
 
+#   Gets a list of RCPTs from user via command line (called in createMessage) and makes sure they follow protocol
+
 
 def getRCPTS():
     searching = True
@@ -249,6 +251,8 @@ def getRCPTS():
         rcpt = whitespace(rcpt)
     return rcptTo
 
+#   Gets data from user via command line (called in createMessage)
+
 
 def getData():
     readingData = True
@@ -259,6 +263,8 @@ def getData():
             return datas
         datas.append(msg)
     return False
+
+#   Gets user input from command line to create mail message send over TCP socket
 
 
 def createMessage():
@@ -294,14 +300,75 @@ def ok250Parse(string, clientSocket):
         return True
     return error500(string, clientSocket)
 
+#   After sending DATA SMTP command, makes sure server sends 354 response message
+
+
+def send354Parse(string, clientSocket):
+    if(string[:3] == '354'):
+        return True
+    return error500(string, clientSocket)
+
+#   After confirming in sendingMessages that the user has input correct MAIL FROM and RCPT TO addresses, this function sends it to the server
+
+
+def sendingDataMessages(userMessageInput, clientSocket):
+    toString = "To: <" + userMessageInput[0] + ">"
+    clientSocket.send(toString.encode())
+
+    createFromString = "From: "
+    i = 0
+    while i < len(userMessageInput[1]):
+        if(i == len(userMessageInput[1])-1):
+            createFromString.append("<"+entry+">")
+        elif:
+            createFromString.append("<"+entry+">, ")
+    clientSocket.send(createFromString.encode())
+
+    subjectString = "Subject: " + userMessageInput[2]
+    clientSocket.send(subjectString.encode())
+
+    for entry in userMessageInput[3]:
+        clientSocket.send(entry.encode())
+
+    quitString = "QUIT"
+    clientSocket.send(quitString.encode())
+    return True
+
+#   After user input and handshake, client begins to send messages to server in SMTP format (after done with SMTP protocol then calls sendingDataMessages)
+
+
+def sendingMessages(userMessageInput, clientSocket):
+    sendingMessages = True
+    while sendingMessages:
+        MAIL_FROM = "MAIL FROM: <" + userMessageInput[0] + ">\n"
+        clientSocket.send(MAIL_FROM.encode())
+        for entry in userMessageInput[1]:
+            RCPT_TO = "RCPT TO: <" + entry + ">\n"
+            clientSocket.send(RCPT_TO.encode())
+            okResponse = clientSocket.recv(1024).decode()
+            okResponse = ok250Parse(okResponse)
+            if okResponse != True:
+                return False
+        DATA = "DATA"
+        clientSocket.send(DATA.encode())
+        send354 = clientSocket.recv(1024).decode()
+        send354 = send354Parse(send354)
+        if send354 != True:
+            return False
+        sendingDataMessages(userMessageInput, clientSocket)
+
+        sendingMessages = True
+    return True
+
+#   After user input, does handshake then calls sendingMessages function that sends the user's unput
+
 
 def acceptingMessages(serverName, serverPort):
     userMessageInput = createMessage()
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect((serverName, serverPort))
-    sendingMessages = True
     test = False
-    while not(test):
+    while not(test):  # Gets 220 message from server and parses
         greeting = clientSocket.recv(1024).decode()
         print(greeting)
         test = greetingParse(greeting, clientSocket)
@@ -309,17 +376,11 @@ def acceptingMessages(serverName, serverPort):
     clientSocket.send(heloMessage.encode())
     print(heloMessage)
     test = False
-    while not(test):
+    while not(test):  # Gets 250 message from server and parses
         ok250 = clientSocket.recv(1024).decode()
         print(ok250)
         test = ok250Parse(ok250, clientSocket)
-    while sendingMessages:
-        MAIL_FROM = "MAIL FROM: <" + userMessageInput[0] + ">\n"
-        clientSocket.send(MAIL_FROM.encode())
-        for entry in userMessageInput[1]:
-            RCPT_TO = "RCPT TO: <" + entry + ">\n"
-            clientSocket.send(RCPT_TO.encode())
-        break
+    sendingMessages(userMessageInput, clientSocket)
     clientSocket.close()
     return True
 
