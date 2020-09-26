@@ -319,9 +319,12 @@ def sendingDataMessages(userMessageInput, clientSocket):
     i = 0
     while i < len(userMessageInput[1]):
         if(i == len(userMessageInput[1])-1):
-            createFromString.append("<"+entry+">\n")
+            createFromString = createFromString + \
+                "<"+userMessageInput[1][i]+">\n"
         else:
-            createFromString.append("<"+entry+">, ")
+            createFromString = createFromString + \
+                "<"+userMessageInput[1][i]+">, "
+        i += 1
     clientSocket.send(createFromString.encode())
 
     subjectString = "Subject: " + userMessageInput[2]+"\n"
@@ -342,6 +345,10 @@ def sendingMessages(userMessageInput, clientSocket):
     while sendingMessages:
         MAIL_FROM = "MAIL FROM: <" + userMessageInput[0] + ">\n"
         clientSocket.send(MAIL_FROM.encode())
+        okResponse = clientSocket.recv(1024).decode()
+        okResponse = ok250Parse(okResponse, clientSocket)
+        if okResponse != True:
+            return False
         for entry in userMessageInput[1]:
             RCPT_TO = "RCPT TO: <" + entry + ">\n"
             clientSocket.send(RCPT_TO.encode())
@@ -357,7 +364,7 @@ def sendingMessages(userMessageInput, clientSocket):
             return False
         sendingDataMessages(userMessageInput, clientSocket)
 
-        sendingMessages = True
+        sendingMessages = False
     return True
 
 #   After user input, does handshake then calls sendingMessages function that sends the user's unput
@@ -390,28 +397,6 @@ def main():
     serverName = sys.argv[1]
     serverPort = int(sys.argv[2])
     acceptingMessages(serverName, serverPort)
-
-    '''
-    with open(sys.argv[1], 'r') as my_file:
-        for line in my_file:
-            if(state == 0):
-                rcptTo.clear()
-                data.clear()
-            state = call_command(line, state)
-            if(state == -1):
-                break
-    if(state == 1):
-        sys.stdout.write("DATA\n")
-        if(not(responseCodeChecker(2))):
-            state == 0
-
-    if(not(state == -1)):  # End of file
-        sys.stdout.write(".\n")
-        responseCodeChecker(0)
-
-    sys.stdout.write("QUIT\n")
-    return False
-    '''
 
 
 main()

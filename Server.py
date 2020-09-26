@@ -296,7 +296,6 @@ def forward_path(string):
 
 #   Takes line of input and appends to list of RCPT TO: files
 def data(string):
-    restOfString = echo(string)
     copy = string
     counter = 0
     if(string[0] == '.'):
@@ -306,9 +305,8 @@ def data(string):
         copy = copy[1:]
         counter += 1
     datas.append(string[:counter] + '\n')
-    if(restOfString == False or restOfString == True):
-        return -1
-    return data(restOfString)
+    return -1
+
 
 #   Makes sure the 'DATA' command has been typed correctly
 
@@ -348,57 +346,6 @@ def from_(string):
 def to(string):
     return "To: <" + getMailbox(string) + ">"
 
-
-#   Selects the correct command to call and throws error if needed
-
-
-def call_command(string, count, connectionSocket):
-    passCommand = False
-    #   DATA (store input, then write)
-    if(count == -1):
-        copy = data(string)
-        if(copy == -2):
-            return writeData(connectionSocket)
-        return copy
-    #   MAIL FROM:
-    elif(check_mail_from(string) != False):
-        if(count != 0):
-            return error503(string, connectionSocket)
-        passCommand = mail_from_cmd(string)
-        if(passCommand != False):
-            mailboxs.append(from_(string))
-            if(passCommand != True):
-                count = ok250(count, connectionSocket)
-                return call_command(passCommand, count, connectionSocket)
-            return ok250(count, connectionSocket)
-        return error501(string, connectionSocket)
-    #   RCPT TO:
-    elif(check_rcpt_to(string) != False):
-        if(count < 1):
-            return error503(string, connectionSocket)
-        passCommand = rcpt_to(string)
-        if(passCommand != False):
-            rcpts.append(getMailbox(string))
-            mailboxs.append(to(string))
-            if(passCommand != True):
-                count = ok250(count, connectionSocket)
-                return call_command(passCommand, count, connectionSocket)
-            return ok250(count, connectionSocket)
-        return error501(string, connectionSocket)
-    #   DATA
-    elif(check_data(string) != False):
-        passCommand = check_data(string)
-        if(count < 2):
-            return error503(string, connectionSocket)
-        echo(string)
-        print("354 Start mail input; end with <CRLF>.<CRLF>")
-        count = -1
-        if(passCommand != True):
-            return call_command(passCommand, count, connectionSocket)
-        return count
-    #   Unrecognized command
-    else:
-        return error500(string, connectionSocket)
 
 #   After full correct input, we will write all From, To and Data messages
 #       to all RCPT TO: files
@@ -484,6 +431,65 @@ def quitParse(string, connectionSocket):
     if(not(string)):
         return error501(string, connectionSocket)
     return True
+
+
+#   Selects the correct command to call and throws error if needed
+
+
+def call_command(string, count, connectionSocket):
+    passCommand = False
+    #   DATA (store input, then write)
+    if(count == -1):
+        copy = data(string)
+        if(copy == -2):
+            quit_ = connectionSocket.recv(1024).decode()
+            quit_ = quitParse(quit_)
+            if not(quit_):
+                return False
+            acceptedString = "250 Message accepted for delivery"
+            connectionSocket.send(acceptedString.encode())
+            return writeData(connectionSocket)
+        return copy
+    #   MAIL FROM:
+    elif(check_mail_from(string) != False):
+        if(count != 0):
+            return error503(string, connectionSocket)
+        passCommand = mail_from_cmd(string)
+        if(passCommand != False):
+            mailboxs.append(from_(string))
+            if(passCommand != True):
+                count = ok250(count, connectionSocket)
+                return call_command(passCommand, count, connectionSocket)
+            return ok250(count, connectionSocket)
+        return error501(string, connectionSocket)
+    #   RCPT TO:
+    elif(check_rcpt_to(string) != False):
+        if(count < 1):
+            return error503(string, connectionSocket)
+        passCommand = rcpt_to(string)
+        if(passCommand != False):
+            rcpts.append(getMailbox(string))
+            mailboxs.append(to(string))
+            if(passCommand != True):
+                count = ok250(count, connectionSocket)
+                return call_command(passCommand, count, connectionSocket)
+            return ok250(count, connectionSocket)
+        return error501(string, connectionSocket)
+    #   DATA
+    elif(check_data(string) != False):
+        passCommand = check_data(string)
+        if(count < 2):
+            return error503(string, connectionSocket)
+        echo(string)
+        mailStart = "354 Start mail input; end with <CRLF>.<CRLF>"
+        connectionSocket.send(mailStart.encode())
+        count = -1
+        if(passCommand != True):
+            return call_command(passCommand, count, connectionSocket)
+        return count
+    #   Unrecognized command
+    else:
+        return error500(string, connectionSocket)
 
 
 def acceptingMessages(connectionSocket):
