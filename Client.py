@@ -337,7 +337,6 @@ def sendingDataMessages(userMessageInput, clientSocket):
         clientSocket.send(entry.encode())
 
     okResponse = clientSocket.recv(1024).decode()
-    print(okResponse)
     okResponse = ok250Parse(okResponse, clientSocket)
     if okResponse != True:
         return False
@@ -386,15 +385,12 @@ def acceptingMessages(serverName, serverPort):
     test = False
     while not(test):  # Gets 220 message from server and parses
         greeting = clientSocket.recv(1024).decode()
-        print(greeting)
         test = greetingParse(greeting, clientSocket)
     heloMessage = "HELO comp431fa20b.cs.unc.edu\n"
     clientSocket.send(heloMessage.encode())
-    print(heloMessage)
     test = False
     while not(test):  # Gets 250 message from server and parses
         ok250 = clientSocket.recv(1024).decode()
-        print(ok250)
         test = ok250Parse(ok250, clientSocket)
     sendingMessages(userMessageInput, clientSocket)
     clientSocket.close()

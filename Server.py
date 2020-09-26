@@ -17,23 +17,6 @@ from socket import *
 rcpts = []
 mailboxs = []
 datas = []
-#   Called to print out incorrect input before returning and showing ERROR -- token
-
-
-def echo(string):
-    if(string[0] == '\n'):
-        print("")
-        return False
-    counter = 0
-    copy = string
-    while(CRLF(string) == False):
-        string = string[1:]
-        counter += 1
-    print(copy[0:counter])
-    string = string[2:]
-    if(len(string) < 1):
-        return True
-    return string
 
 #############################################################
 ##############            MAIL FROM            ##############
@@ -41,7 +24,6 @@ def echo(string):
 
 
 def mail_from_cmd(string):
-    echo(string)
     #   checks MAIL FROM: command
     string = check_mail_from(string)
     #    <nullspace>
@@ -251,7 +233,6 @@ def special(c):
 
 #   Makes sure the RCPT TO: syntax is all corect
 def rcpt_to(string):
-    echo(string)
     #   checks RCPT TO: command
     string = check_rcpt_to(string)
     #   <nullspace>
@@ -306,7 +287,6 @@ def data(string):
 
 
 def check_data(string):
-    # echo(string)
     if(string[0:4] != "DATA"):
         return False
     string = string[4:]
@@ -448,7 +428,6 @@ def call_command(string, count, connectionSocket):
     #   DATA (store input, then write)
     if(count == -1):
         copy = data(string)
-        print(copy)
         if(copy == -2):
             acceptedString = "250 Message accepted for delivery"
             connectionSocket.send(acceptedString.encode())
@@ -489,7 +468,6 @@ def call_command(string, count, connectionSocket):
         passCommand = check_data(string)
         if(count < 2):
             return error503(string, connectionSocket)
-        echo(string)
         mailStart = "354 Start mail input; end with <CRLF>.<CRLF>"
         connectionSocket.send(mailStart.encode())
         count = -1
@@ -507,18 +485,14 @@ def acceptingMessages(connectionSocket):
     test = False
     greeting = "220 comp431fa20.cs.unc.edu\n"
     connectionSocket.send(greeting.encode())
-    print(greeting)
     while not(test):
         heloMessage = connectionSocket.recv(1024).decode()
-        print(heloMessage)
         test = heloParse(heloMessage, connectionSocket)
     heloResponse = "250 Hello" + \
         heloMessage[4:len(heloMessage)-1]+" pleased to meet you\n"
     connectionSocket.send(heloResponse.encode())
-    print(heloResponse)
 
     while takingMessages:
-        print("takingMessages")
         line = connectionSocket.recv(1024).decode()
         count = call_command(line, count, connectionSocket)
         if(count == "Done"):
