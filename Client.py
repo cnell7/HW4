@@ -133,7 +133,7 @@ def element(string):
         return False
     if(name(string) != False):
         string = name(string)
-    elif():
+    else:
         string = string[1:]
     return string
 
@@ -312,25 +312,25 @@ def send354Parse(string, clientSocket):
 
 
 def sendingDataMessages(userMessageInput, clientSocket):
-    toString = "To: <" + userMessageInput[0] + ">"
+    toString = "To: <" + userMessageInput[0] + ">\n"
     clientSocket.send(toString.encode())
 
     createFromString = "From: "
     i = 0
     while i < len(userMessageInput[1]):
         if(i == len(userMessageInput[1])-1):
-            createFromString.append("<"+entry+">")
-        elif:
+            createFromString.append("<"+entry+">\n")
+        else:
             createFromString.append("<"+entry+">, ")
     clientSocket.send(createFromString.encode())
 
-    subjectString = "Subject: " + userMessageInput[2]
+    subjectString = "Subject: " + userMessageInput[2]+"\n"
     clientSocket.send(subjectString.encode())
 
     for entry in userMessageInput[3]:
         clientSocket.send(entry.encode())
 
-    quitString = "QUIT"
+    quitString = "QUIT\n"
     clientSocket.send(quitString.encode())
     return True
 
@@ -346,13 +346,13 @@ def sendingMessages(userMessageInput, clientSocket):
             RCPT_TO = "RCPT TO: <" + entry + ">\n"
             clientSocket.send(RCPT_TO.encode())
             okResponse = clientSocket.recv(1024).decode()
-            okResponse = ok250Parse(okResponse)
+            okResponse = ok250Parse(okResponse, clientSocket)
             if okResponse != True:
                 return False
-        DATA = "DATA"
+        DATA = "DATA\n"
         clientSocket.send(DATA.encode())
         send354 = clientSocket.recv(1024).decode()
-        send354 = send354Parse(send354)
+        send354 = send354Parse(send354, clientSocket)
         if send354 != True:
             return False
         sendingDataMessages(userMessageInput, clientSocket)
