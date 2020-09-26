@@ -347,7 +347,7 @@ def writeData(connectionSocket):
             f.write(d)
         f.close()
     ok250(0, connectionSocket)
-    return "Done"
+    return 0
 
 #   500 Syntax error
 
@@ -433,10 +433,14 @@ def call_command(string, count, connectionSocket):
             connectionSocket.send(acceptedString.encode())
 
             quit_ = connectionSocket.recv(1024).decode()
+            if(check_mail_from(quit_) != False):
+                writeData(connectionSocket)
+                return 0
             quit_ = quitParse(quit_, connectionSocket)
             if not(quit_):
                 return False
-            return writeData(connectionSocket)
+            writeData(connectionSocket)
+            return "Done"
         return copy
     #   MAIL FROM:
     elif(check_mail_from(string) != False):
@@ -483,6 +487,9 @@ def acceptingMessages(connectionSocket):
     count = 0
     takingMessages = True
     test = False
+    datas.clear()
+    mailboxs.clear()
+    rcpts.clear()
     greeting = "220 comp431fa20.cs.unc.edu\n"
     connectionSocket.send(greeting.encode())
     while not(test):
@@ -497,13 +504,14 @@ def acceptingMessages(connectionSocket):
         count = call_command(line, count, connectionSocket)
         if(count == "Done"):
             takingMessages = False
-        if(not(count)):  # False = start over from MAIL FROM command
+        elif(not(count) or count == 0):  # False = start over from MAIL FROM command
             datas.clear()
             mailboxs.clear()
             rcpts.clear()
             count = 0
 
-    if(count != 0):
+    if(count != "Done"):
+        print("ERROR")
         return error501("Incomplete data input", connectionSocket)
 
     closeMessage = "221 comp431fa20.cs.unc.edu closing connection\n"
