@@ -314,10 +314,10 @@ def send354Parse(string, clientSocket):
 
 
 def sendingDataMessages(userMessageInput, clientSocket):
-    toString = "To: <" + userMessageInput[0] + ">\n"
+    toString = "From: <" + userMessageInput[0] + ">\n"
     clientSocket.send(toString.encode())
 
-    createFromString = "From: "
+    createFromString = "To: "
     i = 0
     while i < len(userMessageInput[1]):
         if(i == len(userMessageInput[1])-1):

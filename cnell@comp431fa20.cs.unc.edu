@@ -445,6 +445,7 @@ def call_command(string, count, connectionSocket):
     #   DATA (store input, then write)
     if(count == -1):
         copy = data(string)
+        print(copy)
         if(copy == -2):
             acceptedString = "250 Message accepted for delivery"
             connectionSocket.send(acceptedString.encode())
