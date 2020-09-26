@@ -233,10 +233,9 @@ def ok250(count, clientSocket):
 #   Gets a list of RCPTs from user via command line (called in createMessage) and makes sure they follow protocol
 
 
-def getRCPTS():
+def getRCPTS(rcpt):
     searching = True
     rcptTo = []
-    rcpt = sys.stdin.readline()
     while rcpt:
         forward = forward_path(rcpt)
         if(not(forward)):
@@ -252,9 +251,10 @@ def getRCPTS():
         rcpt = whitespace(rcpt)
     return rcptTo
 
+
 #   Gets data from user via command line (called in createMessage)
 
-
+'''
 def getData():
     readingData = True
     datas = []
@@ -265,26 +265,64 @@ def getData():
             return datas
         datas.append(msg)
     return False
+'''
 
 #   Gets user input from command line to create mail message send over TCP socket
 
 
-def createMessage():
-    mailFrom = False
-    rcptTo = False
-    while(mailFrom == False):
-        print("From:")
-        mailFrom = sys.stdin.readline()
-        mailFrom = reverse_path(mailFrom)
-    while(rcptTo == False):
-        print("To:")
-        rcptTo = getRCPTS()
+def createMessages(serverName, serverPort):
+    state = 0
+    mailFrom = ""
+    rcptTo = []
+    subjectMessage = ""
+    data = []
+    fullMessage = []
+    print("From:")
+    for line in sys.stdin:
+        if(state == 0):
+            mailFrom = reverse_path(line)
+            fullMessage.append(mailFrom)
+            state += 1
+            print("To:")
+        elif(state == 1):
+            rcptTo = getRCPTS(line)
+            fullMessage.append(rcptTo)
+            state += 1
+            print("Subject:")
+        elif(state == 2):
+            subjectMessage = line
+            fullMessage.append(subjectMessage)
+            state += 1
+            print("Message:")
+        elif(state == 3):
+            if(line == ".\n"):
+                data.append(line)
+                fullMessage.append(data)
+                test = acceptingMessages(fullMessage, serverName, serverPort)
+                if(test == False):
+                    return False
+                return createMessages(serverName, serverPort)
+            else:
+                data.append(line)
+    return True
+    '''
+mailFrom = False
+rcptTo = False
+while(mailFrom == False):
+    print("From:")
+    mailFrom = sys.stdin.readline()
+    mailFrom = reverse_path(mailFrom)
+while(rcptTo == False):
+    print("To:")
+    rcptTo = getRCPTS()
 
-    print("Subject:")
-    subjectMessage = sys.stdin.readline()
-    print("Message:")
-    data = getData()
-    return [mailFrom, rcptTo, subjectMessage, data]
+print("Subject:")
+subjectMessage = sys.stdin.readline()
+print("Message:")
+data = getData()
+return [mailFrom, rcptTo, subjectMessage, data]
+'''
+
 
 #   Parses--> 220 Random “greeting” text that includes the name of the server
 
@@ -378,8 +416,7 @@ def sendingMessages(userMessageInput, clientSocket):
 #   After user input, does handshake then calls sendingMessages function that sends the user's unput
 
 
-def acceptingMessages(serverName, serverPort):
-    userMessageInput = createMessage()
+def acceptingMessages(userMessageInput, serverName, serverPort):
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect((serverName, serverPort))
     test = False
@@ -398,10 +435,9 @@ def acceptingMessages(serverName, serverPort):
 
 
 def main():
-    state = 0
     serverName = sys.argv[1]
     serverPort = int(sys.argv[2])
-    acceptingMessages(serverName, serverPort)
+    createMessages(serverName, serverPort)
 
 
 main()
