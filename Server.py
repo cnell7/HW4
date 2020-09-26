@@ -296,15 +296,10 @@ def forward_path(string):
 
 #   Takes line of input and appends to list of RCPT TO: files
 def data(string):
-    copy = string
-    counter = 0
-    if(string[0] == '.'):
-        if(CRLF(string[1:])):
-            return -2
-    while(CRLF(copy) == False):
-        copy = copy[1:]
-        counter += 1
-    datas.append(string[:counter] + '\n')
+    if(string == ".\n"):
+        datas.append(string)
+        return -2
+    datas.append(string)
     return -1
 
 
@@ -360,7 +355,7 @@ def writeData(connectionSocket):
             f.write(d)
         f.close()
     ok250(0, connectionSocket)
-    return 0
+    return "Done"
 
 #   500 Syntax error
 
@@ -441,13 +436,15 @@ def call_command(string, count, connectionSocket):
     #   DATA (store input, then write)
     if(count == -1):
         copy = data(string)
+        print(copy)
         if(copy == -2):
-            quit_ = connectionSocket.recv(1024).decode()
-            quit_ = quitParse(quit_)
-            if not(quit_):
-                return False
             acceptedString = "250 Message accepted for delivery"
             connectionSocket.send(acceptedString.encode())
+
+            quit_ = connectionSocket.recv(1024).decode()
+            quit_ = quitParse(quit_, connectionSocket)
+            if not(quit_):
+                return False
             return writeData(connectionSocket)
         return copy
     #   MAIL FROM:
@@ -512,6 +509,8 @@ def acceptingMessages(connectionSocket):
         print("takingMessages")
         line = connectionSocket.recv(1024).decode()
         count = call_command(line, count, connectionSocket)
+        if(count == "Done"):
+            takingMessages = False
         if(not(count)):  # False = start over from MAIL FROM command
             datas.clear()
             mailboxs.clear()

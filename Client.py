@@ -13,6 +13,7 @@
 #       Signature: _Christian Nell__
 import sys
 import shutil
+import time
 from socket import *
 
 
@@ -260,6 +261,7 @@ def getData():
     while readingData:
         msg = sys.stdin.readline()
         if(msg == ".\n"):
+            datas.append(msg)
             return datas
         datas.append(msg)
     return False
@@ -331,7 +333,14 @@ def sendingDataMessages(userMessageInput, clientSocket):
     clientSocket.send(subjectString.encode())
 
     for entry in userMessageInput[3]:
+        time.sleep(.005)
         clientSocket.send(entry.encode())
+
+    okResponse = clientSocket.recv(1024).decode()
+    print(okResponse)
+    okResponse = ok250Parse(okResponse, clientSocket)
+    if okResponse != True:
+        return False
 
     quitString = "QUIT\n"
     clientSocket.send(quitString.encode())
