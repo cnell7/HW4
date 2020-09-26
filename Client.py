@@ -294,23 +294,11 @@ def ok250Parse(string, clientSocket):
         return True
     return error500(string, clientSocket)
 
-#   After full correct input, we will write all From, To and Data messages
-#       to all RCPT TO: files
 
-
-def writeData():
-    for r in rcpts:
-        f = open("forward/"+r, "a+")
-        for m in mailboxs:
-            f.write(m+'\n')
-        for d in datas:
-            f.write(d)
-        f.close()
-    ok250(0)
-    return 0
-
-
-def acceptingMessages(clientSocket):
+def acceptingMessages(serverName, serverPort):
+    userMessageInput = createMessage()
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect((serverName, serverPort))
     sendingMessages = True
     test = False
     while not(test):
@@ -326,20 +314,21 @@ def acceptingMessages(clientSocket):
         print(ok250)
         test = ok250Parse(ok250, clientSocket)
     while sendingMessages:
-        return True
+        MAIL_FROM = "MAIL FROM: <" + userMessageInput[0] + ">\n"
+        clientSocket.send(MAIL_FROM.encode())
+        for entry in userMessageInput[1]:
+            RCPT_TO = "RCPT TO: <" + entry + ">\n"
+            clientSocket.send(RCPT_TO.encode())
+        break
+    clientSocket.close()
+    return True
 
 
 def main():
     state = 0
     serverName = sys.argv[1]
     serverPort = int(sys.argv[2])
-    print(serverName)
-    print(serverPort)
-    userMessageInput = createMessage()
-    clientSocket = socket(AF_INET, SOCK_STREAM)
-    clientSocket.connect((serverName, serverPort))
-    acceptingMessages(clientSocket)
-    clientSocket.close()
+    acceptingMessages(serverName, serverPort)
 
     '''
     with open(sys.argv[1], 'r') as my_file:

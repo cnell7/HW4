@@ -358,7 +358,7 @@ def call_command(string, count, connectionSocket):
     if(count == -1):
         copy = data(string)
         if(copy == -2):
-            return writeData(connectionSocket)
+            return writeData()
         return copy
     #   MAIL FROM:
     elif(check_mail_from(string) != False):
@@ -368,9 +368,9 @@ def call_command(string, count, connectionSocket):
         if(passCommand != False):
             mailboxs.append(from_(string))
             if(passCommand != True):
-                count = ok250(count, connectionSocket)
+                count = ok250(count)
                 return call_command(passCommand, count)
-            return ok250(count, connectionSocket)
+            return ok250(count)
         return error501(string, connectionSocket)
     #   RCPT TO:
     elif(check_rcpt_to(string) != False):
@@ -381,9 +381,9 @@ def call_command(string, count, connectionSocket):
             rcpts.append(getMailbox(string))
             mailboxs.append(to(string))
             if(passCommand != True):
-                count = ok250(count, connectionSocket)
+                count = ok250(count)
                 return call_command(passCommand, count)
-            return ok250(count, connectionSocket)
+            return ok250(count)
         return error501(string, connectionSocket)
     #   DATA
     elif(check_data(string) != False):
@@ -404,7 +404,7 @@ def call_command(string, count, connectionSocket):
 #       to all RCPT TO: files
 
 
-def writeData(connectionSocket):
+def writeData():
     for r in rcpts:
         f = open("forward/"+r, "a+")
         for m in mailboxs:
@@ -412,7 +412,7 @@ def writeData(connectionSocket):
         for d in datas:
             f.write(d)
         f.close()
-    ok250(0, connectionSocket)
+    ok250(0)
     return 0
 
 #   500 Syntax error
