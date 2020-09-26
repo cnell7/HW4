@@ -435,7 +435,7 @@ def call_command(string, count, connectionSocket):
             quit_ = connectionSocket.recv(1024).decode()
             if(check_mail_from(quit_) != False):
                 writeData(connectionSocket)
-                return 0
+                return call_command(quit_)
             quit_ = quitParse(quit_, connectionSocket)
             if not(quit_):
                 return False
@@ -511,7 +511,6 @@ def acceptingMessages(connectionSocket):
             count = 0
 
     if(count != "Done"):
-        print("ERROR")
         return error501("Incomplete data input", connectionSocket)
 
     closeMessage = "221 comp431fa20.cs.unc.edu closing connection\n"
