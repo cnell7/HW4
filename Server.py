@@ -297,7 +297,6 @@ def forward_path(string):
 #   Takes line of input and appends to list of RCPT TO: files
 def data(string):
     if(string == ".\n"):
-        datas.append(string)
         return -2
     datas.append(string)
     return -1
@@ -357,9 +356,13 @@ def getDomain(string):
 
 
 def writeData(connectionSocket):
-    for r in rcpts:
-        fileName = getDomain(r)
-        f = open("forward/"+fileName, "a+")
+    already = []
+    for entry in rcpts:
+        fileName = getDomain(entry)
+        if not(fileName in already):
+            already.append(fileName)
+    for r in already:
+        f = open("forward/"+r, "a+")
         for d in datas:
             f.write(d)
         f.close()
@@ -445,6 +448,7 @@ def call_command(string, count, connectionSocket):
     #   DATA (store input, then write)
     if(count == -1):
         copy = data(string)
+        print(copy)
         if(copy == -2):
             acceptedString = "250 Message accepted for delivery"
             connectionSocket.send(acceptedString.encode())
