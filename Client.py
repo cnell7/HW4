@@ -196,6 +196,39 @@ def special(c):
         return True
     return False
 
+#   500 Syntax error
+
+
+def error500(string, clientSocket):
+    message = "500 Syntax error: command unrecognized"
+    clientSocket.send(message.encode())
+    return False
+
+#   501 Syntax error
+
+
+def error501(string, clientSocket):
+    message = "501 Syntax error in parameters or arguments"
+    clientSocket.send(message.encode())
+    return False
+
+#   503 Bad sequence
+
+
+def error503(string, clientSocket):
+    message = "503 Bad sequence of commands"
+    clientSocket.send(message.encode())
+    return False
+
+#   250 OK
+
+
+def ok250(count, clientSocket):
+    message = "250 OK"
+    clientSocket.send(message.encode())
+    count += 1
+    return count
+
 
 def getRCPTS():
     searching = True
@@ -245,29 +278,53 @@ def createMessage():
     data = getData()
     return [mailFrom, rcptTo, subjectMessage, data]
 
+#   Parses--> 220 Random “greeting” text that includes the name of the server
 
-def greetingParse(string):
+
+def greetingParse(string, clientSocket):
     if(string[:3] == '220'):
         return True
-    return False
+    return error500(string, clientSocket)
+
+#   Parses--> 250 Hello <hostname> pleased to meet you
 
 
-def ok250Parse(string):
+def ok250Parse(string, clientSocket):
     if(string[:3] == '250'):
         return True
-    return False
+    return error500(string, clientSocket)
+
+#   After full correct input, we will write all From, To and Data messages
+#       to all RCPT TO: files
+
+
+def writeData():
+    for r in rcpts:
+        f = open("forward/"+r, "a+")
+        for m in mailboxs:
+            f.write(m+'\n')
+        for d in datas:
+            f.write(d)
+        f.close()
+    ok250(0)
+    return 0
 
 
 def acceptingMessages(clientSocket):
     sendingMessages = True
-    greeting = clientSocket.recv(1024).decode
-    if(not(greetingParse(greeting))):
-        return False
-    heloMessage = "HELO comp431fa20b.cs.unc.edu"
+    test = False
+    while not(test):
+        greeting = clientSocket.recv(1024).decode()
+        print(greeting)
+        test = greetingParse(greeting, clientSocket)
+    heloMessage = "HELO comp431fa20b.cs.unc.edu\n"
     clientSocket.send(heloMessage.encode())
-    ok250 = clientSocket.recv(1024).decode()
-    if(not(ok250Parse(ok250))):
-        return False
+    print(heloMessage)
+    test = False
+    while not(test):
+        ok250 = clientSocket.recv(1024).decode()
+        print(ok250)
+        test = ok250Parse(ok250, clientSocket)
     while sendingMessages:
         return True
 

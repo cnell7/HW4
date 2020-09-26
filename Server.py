@@ -352,7 +352,7 @@ def to(string):
 #   Selects the correct command to call and throws error if needed
 
 
-def call_command(string, count):
+def call_command(string, count, connectionSocket):
     passCommand = False
     #   DATA (store input, then write)
     if(count == -1):
@@ -363,7 +363,7 @@ def call_command(string, count):
     #   MAIL FROM:
     elif(check_mail_from(string) != False):
         if(count != 0):
-            return error503(string)
+            return error503(string, connectionSocket)
         passCommand = mail_from_cmd(string)
         if(passCommand != False):
             mailboxs.append(from_(string))
@@ -371,11 +371,11 @@ def call_command(string, count):
                 count = ok250(count)
                 return call_command(passCommand, count)
             return ok250(count)
-        return error501(string)
+        return error501(string, connectionSocket)
     #   RCPT TO:
     elif(check_rcpt_to(string) != False):
         if(count < 1):
-            return error503(string)
+            return error503(string, connectionSocket)
         passCommand = rcpt_to(string)
         if(passCommand != False):
             rcpts.append(getMailbox(string))
@@ -384,12 +384,12 @@ def call_command(string, count):
                 count = ok250(count)
                 return call_command(passCommand, count)
             return ok250(count)
-        return error501(string)
+        return error501(string, connectionSocket)
     #   DATA
     elif(check_data(string) != False):
         passCommand = check_data(string)
         if(count < 2):
-            return error503(string)
+            return error503(string, connectionSocket)
         echo(string)
         print("354 Start mail input; end with <CRLF>.<CRLF>")
         count = -1
@@ -398,7 +398,7 @@ def call_command(string, count):
         return count
     #   Unrecognized command
     else:
-        return error500(string)
+        return error500(string, connectionSocket)
 
 #   After full correct input, we will write all From, To and Data messages
 #       to all RCPT TO: files
@@ -418,53 +418,94 @@ def writeData():
 #   500 Syntax error
 
 
-def error500(string):
+def error500(string, connectionSocket):
     message = "500 Syntax error: command unrecognized"
-    connectionSocket.send(message.encode)
+    connectionSocket.send(message.encode())
     return False
 
 #   501 Syntax error
 
 
-def error501(string):
+def error501(string, connectionSocket):
     message = "501 Syntax error in parameters or arguments"
-    connectionSocket.send(message.encode)
+    connectionSocket.send(message.encode())
     return False
 
 #   503 Bad sequence
 
 
-def error503(string):
+def error503(string, connectionSocket):
     message = "503 Bad sequence of commands"
-    connectionSocket.send(message.encode)
+    connectionSocket.send(message.encode())
     return False
 
 #   250 OK
 
 
-def ok250(count):
+def ok250(count, connectionSocket):
     message = "250 OK"
-    connectionSocket.send(message.encode)
+    connectionSocket.send(message.encode())
     count += 1
     return count
+
+
+#   HELO message parse
+
+
+def heloParse(string, connectionSocket):
+    #   HELO <whitespace> <domain> <nullspace> <CRLF>
+    iString = string
+    if(not(string[:4] == 'HELO')):
+        return error500(iString, connectionSocket)
+    string = string[4:]
+    copy = string
+    string = whitespace(string)
+    if(copy[0] == string[0]):
+        return error501(iString, connectionSocket)
+    findDomain = string
+    string = domain(string)
+    if(not(string)):
+        return error501(iString, connectionSocket)
+    findDomain = findDomain[:len(findDomain)-len(string)]
+    string = nullspace(string)
+    string = CRLF(string)
+    if(not(string)):
+        return error501(iString, connectionSocket)
+    return findDomain
+
+
+def quitParse(string, connectionSocket):
+    #   <QUIT> ::= “QUIT” <nullspace> <CRLF>
+    if(not(string[0:4] == 'QUIT')):
+        return error500(string, connectionSocket)
+    string = string[4:]
+    string = nullspace(string)
+    string = CRLF(string)
+    if(not(string)):
+        return error501(string, connectionSocket)
+    return True
 
 
 def acceptingMessages(connectionSocket):
     count = 0
     takingMessages = True
-
-    greeting = "220 comp431fa20.cs.unc.edu"
+    test = False
+    greeting = "220 comp431fa20.cs.unc.edu\n"
     connectionSocket.send(greeting.encode())
-    heloMessage = connectionSocket.recv(1024).decode()
-    heloMessage = heloParse(heloMessage)
-    if(not(heloMessage)):
-        return False
-    heloResponse = "250 Hello "+heloMessage+" pleased to meet you"
+    print(greeting)
+    while not(test):
+        heloMessage = connectionSocket.recv(1024).decode()
+        print(heloMessage)
+        test = heloParse(heloMessage, connectionSocket)
+    heloResponse = "250 Hello" + \
+        heloMessage[4:len(heloMessage)-1]+" pleased to meet you\n"
     connectionSocket.send(heloResponse.encode())
+    print(heloResponse)
 
     while takingMessages:
+        print("takingMessages")
         line = connectionSocket.recv(1024).decode()
-        count = call_command(line, count)
+        count = call_command(line, count, connectionSocket)
         if(not(count)):  # False = start over from MAIL FROM command
             datas.clear()
             mailboxs.clear()
@@ -472,46 +513,10 @@ def acceptingMessages(connectionSocket):
             count = 0
 
     if(count != 0):
-        return error501("Incomplete data input")
+        return error501("Incomplete data input", connectionSocket)
 
-    closeMessage = "221 comp431fa20.cs.unc.edu closing connection"
+    closeMessage = "221 comp431fa20.cs.unc.edu closing connection\n"
     connectionSocket.send(closeMessage.encode())
-    return True
-
-#   HELO message parse
-
-
-def heloParse(string):
-    #   HELO <whitespace> <domain> <nullspace> <CRLF>
-    iString = string
-    if(not(string[:4] == 'HELO')):
-        return error500(iString)
-    string = string[4:]
-    copy = string
-    string = whitespace(string)
-    if(copy[0] == string[0]):
-        return error501(iString)
-    findDomain = string
-    string = domain(string)
-    if(not(string)):
-        return error501(iString)
-    findDomain = findDomain[:len(findDomain)-len(string)]
-    string = nullspace(string)
-    string = CRLF(string)
-    if(not(string)):
-        return error501(iString)
-    return findDomain
-
-
-def quitParse(string):
-    #   <data-cmd> ::= “DATA” <nullspace> <CRLF>
-    if(not(string[0:4] == 'QUIT')):
-        return error500(string)
-    string = string[4:]
-    string = nullspace(string)
-    string = CRLF(string)
-    if(not(string)):
-        return error501(string)
     return True
 
 
