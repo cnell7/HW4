@@ -543,12 +543,9 @@ def acceptingMessages(connectionSocket):
         count = call_command(line, count, connectionSocket)
         if(count == "Done"):
             takingMessages = False
-        elif(not(count) or count == 0):  # False = start over from MAIL FROM command
+        elif(count == False):  # False = start over from MAIL FROM command
             print("ERROR encountered during SMTP command parse")
-            datas.clear()
-            mailboxs.clear()
-            rcpts.clear()
-            count = 0
+            return False
 
     if(count != "Done"):
         print("ERROR incomplete data input")

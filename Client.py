@@ -270,14 +270,20 @@ def createMessages(serverName, serverPort):
     for line in sys.stdin:
         if(state == 0):
             mailFrom = reverse_path(line)
-            fullMessage.append(mailFrom)
-            state += 1
-            print("To:")
+            if(mailFrom == False):
+                print("From:")
+            else:
+                fullMessage.append(mailFrom)
+                state += 1
+                print("To:")
         elif(state == 1):
             rcptTo = getRCPTS(line)
-            fullMessage.append(rcptTo)
-            state += 1
-            print("Subject:")
+            if(rcptTo == False):
+                print("To:")
+            else:
+                fullMessage.append(rcptTo)
+                state += 1
+                print("Subject:")
         elif(state == 2):
             subjectMessage = line
             fullMessage.append(subjectMessage)
