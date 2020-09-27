@@ -378,7 +378,11 @@ def error503(string, connectionSocket):
 
 def ok250(count, connectionSocket):
     message = "250 OK"
-    connectionSocket.send(message.encode())
+    try:
+        connectionSocket.send(message.encode())
+    except OSError:
+        print("ERROR sending OK message")
+        return False
     count += 1
     return count
 
@@ -430,14 +434,24 @@ def call_command(string, count, connectionSocket):
         copy = data(string)
         if(copy == -2):
             acceptedString = "250 Message accepted for delivery"
-            connectionSocket.send(acceptedString.encode())
+            try:
+                connectionSocket.send(acceptedString.encode())
+            except OSError:
+                print("ERROR sending 250 message")
+                return False
 
-            quit_ = connectionSocket.recv(1024).decode()
+            try:
+                quit_ = connectionSocket.recv(1024).decode()
+            except OSError:
+                print("ERROR recv quit message")
+                return False
+
             if(check_mail_from(quit_) != False):
                 writeData(connectionSocket)
                 return call_command(quit_)
             quit_ = quitParse(quit_, connectionSocket)
             if not(quit_):
+                print("ERROR no or incorrect QUIT message")
                 return False
             writeData(connectionSocket)
             return "Done"
@@ -473,7 +487,11 @@ def call_command(string, count, connectionSocket):
         if(count < 2):
             return error503(string, connectionSocket)
         mailStart = "354 Start mail input; end with <CRLF>.<CRLF>"
-        connectionSocket.send(mailStart.encode())
+        try:
+            connectionSocket.send(mailStart.encode())
+        except OSError:
+            print("ERROR sending 354 message")
+            return False
         count = -1
         if(passCommand != True):
             return call_command(passCommand, count, connectionSocket)
@@ -486,48 +504,90 @@ def call_command(string, count, connectionSocket):
 def acceptingMessages(connectionSocket):
     count = 0
     takingMessages = True
-    test = False
     datas.clear()
     mailboxs.clear()
     rcpts.clear()
+
     greeting = "220 comp431fa20.cs.unc.edu\n"
-    connectionSocket.send(greeting.encode())
-    while not(test):
+    try:
+        connectionSocket.send(greeting.encode())
+    except OSError:
+        print("ERROR sending 220 message")
+        return False
+
+    try:
         heloMessage = connectionSocket.recv(1024).decode()
-        test = heloParse(heloMessage, connectionSocket)
+    except OSError:
+        print("ERROR recv HELO message")
+        return False
+    test = heloParse(heloMessage, connectionSocket)
+    if not(test):
+        print("ERROR HELO message incorrect")
+        return False
+
     heloResponse = "250 Hello" + \
         heloMessage[4:len(heloMessage)-1]+" pleased to meet you\n"
-    connectionSocket.send(heloResponse.encode())
+    try:
+        connectionSocket.send(heloResponse.encode())
+    except OSError:
+        print("ERROR sending 250 hello message")
+        return False
 
     while takingMessages:
-        line = connectionSocket.recv(1024).decode()
+        try:
+            line = connectionSocket.recv(1024).decode()
+        except OSError:
+            print("ERROR recv state machine message")
+            return False
+
         count = call_command(line, count, connectionSocket)
         if(count == "Done"):
             takingMessages = False
         elif(not(count) or count == 0):  # False = start over from MAIL FROM command
+            print("ERROR encountered during SMTP command parse")
             datas.clear()
             mailboxs.clear()
             rcpts.clear()
             count = 0
 
     if(count != "Done"):
+        print("ERROR incomplete data input")
         return error501("Incomplete data input", connectionSocket)
 
     closeMessage = "221 comp431fa20.cs.unc.edu closing connection\n"
-    connectionSocket.send(closeMessage.encode())
+    try:
+        connectionSocket.send(closeMessage.encode())
+    except OSError:
+        print("ERROR sending 221 message")
+        return False
     return True
 
 
 def main():
     #   Make welcome socket and set port number from command line
-    serverPort = int(sys.argv[1])
-    serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket.bind(('', serverPort))
-    serverSocket.listen(1)  # Server begins listening for incoming TCP requests
+    try:
+        serverPort = int(sys.argv[1])
+        serverSocket = socket(AF_INET, SOCK_STREAM)
+        serverSocket.bind(('', serverPort))
+        # Server begins listening for incoming TCP requests
+        serverSocket.listen(1)
+    except OSError:
+        print("ERROR creating socket")
+        return False
     while True:
-        connectionSocket, addr = serverSocket.accept()
+        try:
+            connectionSocket, addr = serverSocket.accept()
+        except OSError:
+            print("ERROR accepting socket")
+            return False
+
         acceptingMessages(connectionSocket)
-        connectionSocket.close()  # Close connection to this client
+
+        try:
+            connectionSocket.close()  # Close connection to this client
+        except OSError:
+            print("ERROR accepting socket")
+            return False
 
 
 main()

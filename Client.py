@@ -226,7 +226,11 @@ def error503(string, clientSocket):
 
 def ok250(count, clientSocket):
     message = "250 OK"
-    clientSocket.send(message.encode())
+    try:
+        clientSocket.send(message.encode())
+    except OSError:
+        print("ERROR sending 250 message")
+        return False
     count += 1
     return count
 
@@ -251,21 +255,6 @@ def getRCPTS(rcpt):
         rcpt = whitespace(rcpt)
     return rcptTo
 
-
-#   Gets data from user via command line (called in createMessage)
-
-'''
-def getData():
-    readingData = True
-    datas = []
-    while readingData:
-        msg = sys.stdin.readline()
-        if(msg == ".\n"):
-            datas.append(msg)
-            return datas
-        datas.append(msg)
-    return False
-'''
 
 #   Gets user input from command line to create mail message send over TCP socket
 
@@ -301,27 +290,10 @@ def createMessages(serverName, serverPort):
                 test = acceptingMessages(fullMessage, serverName, serverPort)
                 if(test == False):
                     return False
-                return createMessages(serverName, serverPort)
+                return True
             else:
                 data.append(line)
     return True
-    '''
-mailFrom = False
-rcptTo = False
-while(mailFrom == False):
-    print("From:")
-    mailFrom = sys.stdin.readline()
-    mailFrom = reverse_path(mailFrom)
-while(rcptTo == False):
-    print("To:")
-    rcptTo = getRCPTS()
-
-print("Subject:")
-subjectMessage = sys.stdin.readline()
-print("Message:")
-data = getData()
-return [mailFrom, rcptTo, subjectMessage, data]
-'''
 
 
 #   Parses--> 220 Random “greeting” text that includes the name of the server
@@ -353,7 +325,11 @@ def send354Parse(string, clientSocket):
 
 def sendingDataMessages(userMessageInput, clientSocket):
     toString = "From: <" + userMessageInput[0] + ">\n"
-    clientSocket.send(toString.encode())
+    try:
+        clientSocket.send(toString.encode())
+    except OSError:
+        print("ERROR sending From: message")
+        return False
 
     createFromString = "To: "
     i = 0
@@ -365,22 +341,44 @@ def sendingDataMessages(userMessageInput, clientSocket):
             createFromString = createFromString + \
                 "<"+userMessageInput[1][i]+">, "
         i += 1
-    clientSocket.send(createFromString.encode())
+    try:
+        clientSocket.send(createFromString.encode())
+    except OSError:
+        print("ERROR sending To: message")
+        return False
 
     subjectString = "Subject: " + userMessageInput[2]+"\n"
-    clientSocket.send(subjectString.encode())
+    try:
+        clientSocket.send(subjectString.encode())
+    except OSError:
+        print("ERROR sending subject message")
+        return False
 
     for entry in userMessageInput[3]:
         time.sleep(.005)
-        clientSocket.send(entry.encode())
+        try:
+            clientSocket.send(entry.encode())
+        except OSError:
+            print("ERROR sending part of data message")
+            return False
+    try:
+        okResponse = clientSocket.recv(1024).decode()
+    except OSError:
+        print("ERROR recv OK response")
+        return False
 
-    okResponse = clientSocket.recv(1024).decode()
     okResponse = ok250Parse(okResponse, clientSocket)
     if okResponse != True:
+        print("ERROR 250 Message accepted not received")
         return False
 
     quitString = "QUIT\n"
-    clientSocket.send(quitString.encode())
+    try:
+        clientSocket.send(quitString.encode())
+    except OSError:
+        print("ERROR sending QUIT message")
+        return False
+
     return True
 
 #   After user input and handshake, client begins to send messages to server in SMTP format (after done with SMTP protocol then calls sendingDataMessages)
@@ -390,23 +388,55 @@ def sendingMessages(userMessageInput, clientSocket):
     sendingMessages = True
     while sendingMessages:
         MAIL_FROM = "MAIL FROM: <" + userMessageInput[0] + ">\n"
-        clientSocket.send(MAIL_FROM.encode())
-        okResponse = clientSocket.recv(1024).decode()
+        try:
+            clientSocket.send(MAIL_FROM.encode())
+        except OSError:
+            print("ERROR sending MAIL FROM: message")
+            return False
+
+        try:
+            okResponse = clientSocket.recv(1024).decode()
+        except OSError:
+            print("ERROR recv OK response")
+            return False
         okResponse = ok250Parse(okResponse, clientSocket)
         if okResponse != True:
+            print("ERROR 250 not received after MAIL FROM")
             return False
         for entry in userMessageInput[1]:
             RCPT_TO = "RCPT TO: <" + entry + ">\n"
-            clientSocket.send(RCPT_TO.encode())
-            okResponse = clientSocket.recv(1024).decode()
+            try:
+                clientSocket.send(RCPT_TO.encode())
+            except OSError:
+                print("ERROR sending RCPT TO: message")
+                return False
+
+            try:
+                okResponse = clientSocket.recv(1024).decode()
+            except OSError:
+                print("ERROR recv OK response")
+                return False
+
             okResponse = ok250Parse(okResponse, clientSocket)
             if okResponse != True:
+                print("ERROR 250 not received after RCPT TO")
                 return False
         DATA = "DATA\n"
-        clientSocket.send(DATA.encode())
-        send354 = clientSocket.recv(1024).decode()
+        try:
+            clientSocket.send(DATA.encode())
+        except OSError:
+            print("ERROR sending DATA message")
+            return False
+
+        try:
+            send354 = clientSocket.recv(1024).decode()
+        except OSError:
+            print("ERROR recv 354 message")
+            return False
+
         send354 = send354Parse(send354, clientSocket)
         if send354 != True:
+            print("ERROR 354 not received after DATA")
             return False
         sendingDataMessages(userMessageInput, clientSocket)
 
@@ -417,20 +447,49 @@ def sendingMessages(userMessageInput, clientSocket):
 
 
 def acceptingMessages(userMessageInput, serverName, serverPort):
-    clientSocket = socket(AF_INET, SOCK_STREAM)
-    clientSocket.connect((serverName, serverPort))
-    test = False
-    while not(test):  # Gets 220 message from server and parses
+    try:
+        clientSocket = socket(AF_INET, SOCK_STREAM)
+    except OSError:
+        print("ERROR creating socket")
+        return False
+    try:
+        clientSocket.connect((serverName, serverPort))
+    except OSError:
+        print("ERROR connecting socket")
+        return False
+    # Gets 220 message from server and parses
+    try:
         greeting = clientSocket.recv(1024).decode()
-        test = greetingParse(greeting, clientSocket)
+    except OSError:
+        print("ERROR recv 220 message")
+        return False
+
+    test = greetingParse(greeting, clientSocket)
+    if not(test):
+        print("ERROR 220 message incorrect")
+        return False
     heloMessage = "HELO comp431fa20b.cs.unc.edu\n"
-    clientSocket.send(heloMessage.encode())
-    test = False
-    while not(test):  # Gets 250 message from server and parses
+    try:
+        clientSocket.send(heloMessage.encode())
+    except OSError:
+        print("ERROR sending HELO message")
+        return False
+    # Gets 250 message from server and parses
+    try:
         ok250 = clientSocket.recv(1024).decode()
-        test = ok250Parse(ok250, clientSocket)
+    except OSError:
+        print("ERROR recv 250 message")
+        return False
+    test = ok250Parse(ok250, clientSocket)
+    if not(test):
+        print("ERROR 250 message incorrect")
+        return False
     sendingMessages(userMessageInput, clientSocket)
-    clientSocket.close()
+    try:
+        clientSocket.close()
+    except OSError:
+        print("ERROR closing socket")
+        return False
     return True
 
 
