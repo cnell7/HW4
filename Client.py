@@ -375,7 +375,7 @@ def sendingDataMessages(userMessageInput, clientSocket):
 
     okResponse = ok250Parse(okResponse, clientSocket)
     if okResponse != True:
-        print("ERROR 250 Message accepted not received")
+        print("ERROR with ok250 response")
         return False
 
     quitString = "QUIT\n"

@@ -451,8 +451,7 @@ def call_command(string, count, connectionSocket):
                 return call_command(quit_)
             quit_ = quitParse(quit_, connectionSocket)
             if not(quit_):
-                print("ERROR no or incorrect QUIT message")
-                return False
+                return error500("ERROR QUIT", connectionSocket)
             writeData(connectionSocket)
             return "Done"
         return copy
@@ -522,8 +521,7 @@ def acceptingMessages(connectionSocket):
         return False
     test = heloParse(heloMessage, connectionSocket)
     if not(test):
-        print("ERROR HELO message incorrect")
-        return False
+        return error500("HELO message incorrect", connectionSocket)
 
     heloResponse = "250 Hello" + \
         heloMessage[4:len(heloMessage)-1]+" pleased to meet you\n"
@@ -544,11 +542,9 @@ def acceptingMessages(connectionSocket):
         if(count == "Done"):
             takingMessages = False
         elif(count == False):  # False = start over from MAIL FROM command
-            print("ERROR encountered during SMTP command parse")
             return False
 
     if(count != "Done"):
-        print("ERROR incomplete data input")
         return error501("Incomplete data input", connectionSocket)
 
     closeMessage = "221 comp431fa20.cs.unc.edu closing connection\n"
