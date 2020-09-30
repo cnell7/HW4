@@ -1,12 +1,10 @@
-#   SMTP "MAIL FROM" message checker
 #   Author: Christian Nell
 #   Onyen: cnell
 #   PID: 7302-29326
 #   Date: 8/11/20
-#   Purpose: To check a Simple Mail Transfer Protocol "MAIL FROM" message
-#               and make sure it is following the correct syntax. This
-#               message tells the mail server which person is trying to
-#               email a message.
+#   Purpose: SMTP mail client. Takes two command line arguments. Prompts user for- From:, To:, Subject:, Message:
+#                  Message is terminated with "\n.\n". After correct message is input from user, socket connects
+#                  to mail server. This client can handle several errors including socket errors.
 #
 #   UNC Honor Pledge: I certify that no unauthorized assistance has been received or
 #       given in the completion of this work
