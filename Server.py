@@ -1,12 +1,13 @@
-#   SMTP "MAIL FROM" message checker
 #   Author: Christian Nell
 #   Onyen: cnell
 #   PID: 7302-29326
 #   Date: 8/11/20
-#   Purpose: To check a Simple Mail Transfer Protocol "MAIL FROM" message
-#               and make sure it is following the correct syntax. This
-#               message tells the mail server which person is trying to
-#               email a message.
+#   Purpose: Takes one command line argument which is the port number to listen for connections on.
+#               Once client connections to the servers socket, a three way handshake is made between the 
+#               server and client. Then server parses the clients messages and makes sure they follow protocol.
+#               Once a correctly formated message is accepted by this server, if there is a foward directory in the same
+#               directory as the server file, the server will create a file in the foward directly with the From: domain.
+#               It will be the same format as the client's CLI input.
 #
 #   UNC Honor Pledge: I certify that no unauthorized assistance has been received or
 #       given in the completion of this work
