@@ -1,5 +1,11 @@
 Fully functional SMTP mail server using grammar provided from HW1-HW4 as well as what is defined below. An example of the three way handshake added this HW is shown right under this text.
 
+220 comp431fa20.cs.unc.edu
+HELO comp431fa20b.cs.unc.edu
+250 Hello comp431fa20b.cs.unc.edu pleased to meet you
+
+__________________________________________________________________________________
+
 220 Greeting :== 220 Random “greeting” text that includes the name of the server
 HELO: == HELO <whitespace> <domain> <nullspace> <CRLF>
 250 Response :== 250 Hello comp431fa20b.cs.unc.edu pleased to meet you
