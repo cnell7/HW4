@@ -1,4 +1,4 @@
-Fully functional SMTP mail server using grammar provided from HW1-HW4 as well as what is defined below. An example of the three way handshake added this HW is shown right under this text.
+Fully functional SMTP mail server using grammar provided from HW1-HW3 as well as what is defined below. An example of the three way handshake added this HW is shown right under this text.
 
 220 comp431fa20.cs.unc.edu
 HELO comp431fa20b.cs.unc.edu
