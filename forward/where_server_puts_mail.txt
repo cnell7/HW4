@@ -1,1 +1,1 @@
-This is where the server will store accepted SMTP messages.
+The mail server will store accepted SMTP messages in this forward directory.
